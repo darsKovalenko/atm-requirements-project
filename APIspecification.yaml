@@ -1,0 +1,250 @@
+openapi: 3.0.0
+info:
+  title: Simple ATM API
+  description: This is a simple API for ATM
+  version: 1.0.0
+servers:
+- url: https://virtserver.swaggerhub.com/student-753/ATM/1.0.0
+  description: SwaggerHub API Auto Mocking
+tags:
+- name: Transactions
+  description: Операции с деньгами
+- name: Info
+  description: Получение информации
+paths:
+  /operations/withdrawal:
+    post:
+      tags:
+      - Transactions
+      summary: Снять наличные
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashOperation"
+      responses:
+        "200":
+          description: Успешное снятие
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessTransactionResponse"
+        "400":
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Неверный PIN-код
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncorrectPINResponse"
+  /operations/deposit:
+    post:
+      tags:
+      - Transactions
+      summary: Пополнить счет
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashOperation"
+        required: true
+      responses:
+        "200":
+          description: Успешное пополнение
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessTransactionResponse"
+        "400":
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /operations/payments:
+    post:
+      tags:
+      - Transactions
+      summary: Оплатить услугу
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServicePayment"
+        required: true
+      responses:
+        "200":
+          description: Успешная оплата
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessTransactionResponse"
+        "400":
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /operations/statement:
+    get:
+      tags:
+      - Info
+      summary: Получить выписку по счету
+      parameters:
+      - name: cardNumber
+        in: query
+        description: Номер карты
+        required: true
+        schema:
+          pattern: "^\\d{16}$"
+          type: string
+      - name: pin
+        in: query
+        description: PIN-код
+        required: true
+        schema:
+          pattern: "^\\d{4}$"
+          type: string
+      responses:
+        "200":
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatementResponse"
+        "401":
+          description: Неверный PIN-код
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncorrectPINResponse"
+  /operations/transfer:
+    post:
+      tags:
+      - Transactions
+      summary: Перевод на другую карту
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardTransfer"
+        required: true
+      responses:
+        "200":
+          description: Перевод выполнен успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessTransactionResponse"
+        "400":
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    CashOperation:
+      required:
+      - amount
+      - cardNumber
+      - pin
+      type: object
+      properties:
+        cardNumber:
+          pattern: "^\\d{16}$"
+          type: string
+          description: Номер карты (16 цифр)
+          example: "1234567890123456"
+        pin:
+          pattern: "^\\d{4}$"
+          type: string
+          description: PIN-код (4 цифры)
+          example: "1234"
+        amount:
+          minimum: 0.01
+          type: number
+          description: Сумма (должна быть положительной)
+          example: 5000
+    ServicePayment:
+      required:
+      - serviceId
+      type: object
+      properties:
+        serviceId:
+          type: string
+          description: Идентификатор услуги
+          example: by2345
+      allOf:
+      - $ref: "#/components/schemas/CashOperation"
+    CardTransfer:
+      required:
+      - targetCardNumber
+      type: object
+      properties:
+        targetCardNumber:
+          pattern: "^\\d{16}$"
+          type: string
+          description: Номер карты получателя
+          example: "9876543210987654"
+      allOf:
+      - $ref: "#/components/schemas/CashOperation"
+    SuccessTransactionResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          example: f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16
+        status:
+          type: string
+          example: УСПЕШНО
+        message:
+          type: string
+          example: Операция выполнена успешно
+        newBalance:
+          type: number
+          example: 15087.5
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-09-14T14:00:00Z
+    StatementResponse:
+      type: object
+      properties:
+        cardNumber:
+          type: string
+        holderName:
+          type: string
+          example: DARYA K.
+        date:
+          type: string
+          format: date
+          example: 2025-09-14
+        balance:
+          type: number
+          example: 20345.5
+        currency:
+          type: string
+          example: BYN
+    ErrorResponse:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: ERROR
+        message:
+          type: string
+          example: Произошла ошибка. Повторите операцию еще раз
+    IncorrectPINResponse:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          example: INCORRECT_PIN
+        message:
+          type: string
+          example: Введен некорректный ПИН-код
